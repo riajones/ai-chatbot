@@ -19,23 +19,6 @@ export const user = pgTable('User', {
 
 export type User = InferSelectModel<typeof user>;
 
-export const chat = pgTable('Chat', {
-  id: uuid('id').primaryKey().notNull().defaultRandom(),
-  createdAt: timestamp('createdAt').notNull(),
-  title: text('title').notNull(),
-  userId: uuid('userId')
-    .notNull()
-    .references(() => user.id),
-  visibility: varchar('visibility', { enum: ['public', 'private'] })
-    .notNull()
-    .default('private'),
-  chattyId: uuid('chattyId')
-    .references(() => chatty.id),
-  historyEnabled: boolean('historyEnabled').notNull().default(false),
-});
-
-export type Chat = InferSelectModel<typeof chat>;
-
 export const chatty = pgTable('Chatty', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   createdAt: timestamp('createdAt').notNull(),
@@ -48,6 +31,23 @@ export const chatty = pgTable('Chatty', {
 });
 
 export type Chatty = InferSelectModel<typeof chatty>;
+
+export const chat = pgTable('Chat', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  createdAt: timestamp('createdAt').notNull(),
+  title: text('title').notNull(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  visibility: varchar('visibility', { enum: ['public', 'private'] })
+    .notNull()
+    .default('private'),
+  chattyId: uuid('chattyId')
+    .references(() => chatty.id),
+  historyEnabled: boolean('historyEnabled').default(false),
+});
+
+export type Chat = InferSelectModel<typeof chat>;
 
 // DEPRECATED: The following schema is deprecated and will be removed in the future.
 // Read the migration guide at https://chat-sdk.dev/docs/migration-guides/message-parts

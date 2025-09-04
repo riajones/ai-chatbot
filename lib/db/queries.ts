@@ -252,12 +252,12 @@ export async function getChattiesByUserId({
         );
       }
 
-      filteredChatties = await query(gt(chat.createdAt, selectedChat.createdAt));
+      filteredChatties = await query(gt(chatty.createdAt, selectedChat.createdAt));
     } else if (endingBefore) {
       const [selectedChat] = await db
         .select()
-        .from(chat)
-        .where(eq(chat.id, endingBefore))
+        .from(chatty)
+        .where(eq(chatty.id, endingBefore))
         .limit(1);
 
       if (!selectedChat) {
@@ -267,7 +267,7 @@ export async function getChattiesByUserId({
         );
       }
 
-      filteredChatties = await query(lt(chat.createdAt, selectedChat.createdAt));
+      filteredChatties = await query(lt(chatty.createdAt, selectedChat.createdAt));
     } else {
       filteredChatties = await query();
     }
@@ -275,7 +275,7 @@ export async function getChattiesByUserId({
     const hasMore = filteredChatties.length > limit;
 
     return {
-      chats: hasMore ? filteredChatties.slice(0, limit) : filteredChatties,
+      chatties: hasMore ? filteredChatties.slice(0, limit) : filteredChatties,
       hasMore,
     };
   } catch (error) {
