@@ -230,8 +230,8 @@ export async function getChattiesByUserId({
         .from(chatty)
         .where(
           whereCondition
-            ? and(whereCondition, eq(chatty.userId, id))
-            : eq(chatty.userId, id),
+            ? and(whereCondition, eq(chatty.userId, id), eq(chatty.active, true))
+            : and(eq(chatty.userId, id), eq(chatty.active, true)),
         )
         .orderBy(desc(chatty.createdAt))
         .limit(extendedLimit);
@@ -242,7 +242,7 @@ export async function getChattiesByUserId({
       const [selectedChat] = await db
         .select()
         .from(chatty)
-        .where(eq(chatty.id, startingAfter))
+        .where(and(eq(chatty.id, startingAfter), eq(chatty.active, true)))
         .limit(1);
 
       if (!selectedChat) {
@@ -296,20 +296,25 @@ export async function getChattyById({ id }: { id: string }) {
 }
 
 export async function saveChatty({
+  id,
   userId,
   name,
   description,
   context,
 }: {
+  id?: string;
   userId: string;
   name: string;
   description: string;
   context: string;
 }) {
   try {
-    const id = generateUUID();
-    await db.insert(chatty).values({
-      id,
+    const chattyId = id ?? generateUUID();
+    const deactivateChatty = db.update(chatty).set({ active: false }).where(eq(chatty.id, chattyId));
+
+    const newChattyId = generateUUID();
+    const newChatty = db.insert(chatty).values({
+      id: newChattyId,
       createdAt: new Date(),
       userId,
       name,
@@ -317,7 +322,9 @@ export async function saveChatty({
       context,
     });
 
-    return getChattyById({ id });
+    await Promise.all([newChatty, deactivateChatty]);
+
+    return getChattyById({ id: newChattyId });
   } catch (error) {
     throw new ChatSDKError('bad_request:database', 'Failed to save chatty');
   }
@@ -334,6 +341,7 @@ export async function deleteChattyById({ id }: { id: string }) {
       .returning();
     return chatsDeleted;
   } catch (error) {
+    console.error(error);
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to delete chatty by id',

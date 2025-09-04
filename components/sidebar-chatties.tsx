@@ -28,6 +28,7 @@ import useSWRInfinite from 'swr/infinite';
 import { LoaderIcon, PlusIcon } from './icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Button } from './ui/button';
+import { ChattySidebarItem } from './chatty-sidebar-item';
 
 type GroupedChats = {
   today: Chat[];
@@ -43,39 +44,6 @@ export interface ChattiesList {
 }
 
 const PAGE_SIZE = 20;
-
-const groupChatsByDate = (chats: Chat[]): GroupedChats => {
-  const now = new Date();
-  const oneWeekAgo = subWeeks(now, 1);
-  const oneMonthAgo = subMonths(now, 1);
-
-  return chats.reduce(
-    (groups, chat) => {
-      const chatDate = new Date(chat.createdAt);
-
-      if (isToday(chatDate)) {
-        groups.today.push(chat);
-      } else if (isYesterday(chatDate)) {
-        groups.yesterday.push(chat);
-      } else if (chatDate > oneWeekAgo) {
-        groups.lastWeek.push(chat);
-      } else if (chatDate > oneMonthAgo) {
-        groups.lastMonth.push(chat);
-      } else {
-        groups.older.push(chat);
-      }
-
-      return groups;
-    },
-    {
-      today: [],
-      yesterday: [],
-      lastWeek: [],
-      lastMonth: [],
-      older: [],
-    } as GroupedChats,
-  );
-};
 
 export function getChattiesPaginationKey(
   pageIndex: number,
@@ -122,9 +90,6 @@ function ChattiesHeader() {
 }
 
 export function SidebarChatties({ user }: { user: User | undefined }) {
-  const { setOpenMobile } = useSidebar();
-  const { id } = useParams();
-
   const {
     data: paginatedChatties,
     setSize,
@@ -135,7 +100,6 @@ export function SidebarChatties({ user }: { user: User | undefined }) {
     fallbackData: [],
   });
 
-  const router = useRouter();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -170,10 +134,6 @@ export function SidebarChatties({ user }: { user: User | undefined }) {
     });
 
     setShowDeleteDialog(false);
-
-    if (deleteId === id) {
-      router.push('/');
-    }
   };
 
   if (!user) {
@@ -191,9 +151,6 @@ export function SidebarChatties({ user }: { user: User | undefined }) {
   if (isLoading) {
     return (
       <SidebarGroup>
-        <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
-          Today
-        </div>
         <SidebarGroupContent>
           <div className="flex flex-col">
             {[44, 32, 28, 64, 52].map((item) => (
@@ -246,21 +203,8 @@ export function SidebarChatties({ user }: { user: User | undefined }) {
                   <div className="flex flex-col gap-6">
                     {(
                       <div>
-                        <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
-                          Today
-                        </div>
                         {chattiesFromHistory.map((chatty) => (
-                          <div>{chatty.name}</div>
-                          // <ChatItem
-                          //   key={chat.id}
-                          //   chat={chat}
-                          //   isActive={chat.id === id}
-                          //   onDelete={(chatId) => {
-                          //     setDeleteId(chatId);
-                          //     setShowDeleteDialog(true);
-                          //   }}
-                          //   setOpenMobile={setOpenMobile}
-                          // />
+                          <ChattySidebarItem key={chatty.id} chatty={chatty} />
                         ))}
                       </div>
                     )}

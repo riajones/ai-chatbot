@@ -1,12 +1,13 @@
 import { auth } from '@/app/(auth)/auth';
-import { deleteChattyById, getChattyById, saveChatty } from '@/lib/db/queries';
+import { deleteChattyById, getChattyById } from '@/lib/db/queries';
 import { Chatty } from '@/lib/db/schema';
 import { ChatSDKError } from '@/lib/errors';
-import { NextRequest } from 'next/server';
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
-  const chattyId = searchParams.get('id');
+export async function GET(
+  _: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id: chattyId } = await params;
 
   if (!chattyId) {
     return new ChatSDKError('bad_request:api').toResponse();
@@ -37,43 +38,17 @@ export async function GET(request: NextRequest) {
   return Response.json(chatty, { status: 200 });
 }
 
-export async function POST(request: NextRequest) {
-  const json = await request.json();
-  const { name, description, context } = json;
 
-  if (!name) {
-    return new ChatSDKError('bad_request:api', 'Name is required').toResponse();
-  }
 
-  if (!context) {
-    return new ChatSDKError('bad_request:api', 'Context is required').toResponse();
-  }
+export async function DELETE(
+  _: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id: chattyId } = await params;
 
-  if (!context) {
-    return new ChatSDKError('bad_request:api', 'Context is required').toResponse();
-  }
+  console.log('chattyId', chattyId);
 
-  const session = await auth();
-
-  if (!session?.user) {
-    return new ChatSDKError('unauthorized:chatty').toResponse();
-  }
-
-  const chatty = await saveChatty({
-    name,
-    description,
-    context,
-    userId: session.user.id,
-  });
-
-  return Response.json(chatty, { status: 200 });
-}
-
-export async function DELETE(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get('id');
-
-  if (!id) {
+  if (!chattyId) {
     return new ChatSDKError('bad_request:api').toResponse();
   }
 
@@ -83,13 +58,13 @@ export async function DELETE(request: NextRequest) {
     return new ChatSDKError('unauthorized:chatty').toResponse();
   }
 
-  const chat = await getChattyById({ id });
+  const chat = await getChattyById({ id: chattyId });
 
   if (chat.userId !== session.user.id) {
     return new ChatSDKError('forbidden:chatty').toResponse();
   }
 
-  const deletedChatty = await deleteChattyById({ id });
+  const deletedChatty = await deleteChattyById({ id: chattyId });
 
   return Response.json(deletedChatty, { status: 200 });
 }

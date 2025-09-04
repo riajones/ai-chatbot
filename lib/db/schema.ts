@@ -21,6 +21,7 @@ export type User = InferSelectModel<typeof user>;
 
 export const chatty = pgTable('Chatty', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
+  active: boolean('active').default(true),
   createdAt: timestamp('createdAt').notNull(),
   name: text('name').notNull(),
   description: text('description'),
