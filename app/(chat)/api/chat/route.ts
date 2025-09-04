@@ -12,6 +12,7 @@ import {
   createStreamId,
   deleteChatById,
   getChatById,
+  getChattyById,
   getMessageCountByUserId,
   getMessagesByChatId,
   saveChat,
@@ -78,8 +79,10 @@ export async function POST(request: Request) {
       message,
       selectedChatModel,
       selectedVisibilityType,
+      chattyId,
     }: {
       id: string;
+      chattyId?: string;
       message: ChatMessage;
       selectedChatModel: ChatModel['id'];
       selectedVisibilityType: VisibilityType;
@@ -114,6 +117,7 @@ export async function POST(request: Request) {
         userId: session.user.id,
         title,
         visibility: selectedVisibilityType,
+        chattyId,
       });
     } else {
       if (chat.userId !== session.user.id) {
@@ -121,6 +125,7 @@ export async function POST(request: Request) {
       }
     }
 
+    const chatty = chattyId ? await getChattyById({ id: chattyId }) : undefined;
     const messagesFromDb = await getMessagesByChatId({ id });
     const uiMessages = [...convertToUIMessages(messagesFromDb), message];
 
@@ -153,18 +158,18 @@ export async function POST(request: Request) {
       execute: ({ writer: dataStream }) => {
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
+          system: systemPrompt({ selectedChatModel, requestHints, userProvidedContext: chatty?.context }),
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
           experimental_activeTools:
             selectedChatModel === 'chat-model-reasoning'
               ? []
               : [
-                  'getWeather',
-                  'createDocument',
-                  'updateDocument',
-                  'requestSuggestions',
-                ],
+                'getWeather',
+                'createDocument',
+                'updateDocument',
+                'requestSuggestions',
+              ],
           experimental_transform: smoothStream({ chunking: 'word' }),
           tools: {
             getWeather,

@@ -4,8 +4,11 @@ import { Button } from './ui/button';
 import { DeleteIcon, EditIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSidebar } from './ui/sidebar';
+import { useContext } from 'react';
+import { ChattyContext } from '@/app/(chat)/context/ChattyContext';
 
 export const ChattySidebarItem = ({ chatty }: { chatty: Chatty }) => {
+  const { deleteChatty } = useContext(ChattyContext);
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
 
@@ -22,9 +25,7 @@ export const ChattySidebarItem = ({ chatty }: { chatty: Chatty }) => {
             className="p-2 h-fit"
             onClick={() => {
               setOpenMobile(false);
-              fetch(`/api/chatty/${chatty.id}?id=${chatty.id}`, {
-                method: 'DELETE',
-              });
+              deleteChatty(chatty.id);
             }}
           >
             <DeleteIcon />

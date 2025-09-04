@@ -1,10 +1,8 @@
 'use client';
 
-import { isToday, isYesterday, subMonths, subWeeks } from 'date-fns';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import type { User } from 'next-auth';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useContext, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertDialog,
@@ -22,45 +20,11 @@ import {
   SidebarMenu,
   useSidebar,
 } from '@/components/ui/sidebar';
-import type { Chat, Chatty } from '@/lib/db/schema';
-import { fetcher } from '@/lib/utils';
-import useSWRInfinite from 'swr/infinite';
 import { LoaderIcon, PlusIcon } from './icons';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Button } from './ui/button';
 import { ChattySidebarItem } from './chatty-sidebar-item';
-
-type GroupedChats = {
-  today: Chat[];
-  yesterday: Chat[];
-  lastWeek: Chat[];
-  lastMonth: Chat[];
-  older: Chat[];
-};
-
-export interface ChattiesList {
-  chatties: Array<Chatty>;
-  hasMore: boolean;
-}
-
-const PAGE_SIZE = 20;
-
-export function getChattiesPaginationKey(
-  pageIndex: number,
-  previousChattiesData: ChattiesList,
-) {
-  if (previousChattiesData && previousChattiesData.hasMore === false) {
-    return null;
-  }
-
-  if (pageIndex === 0) return `/api/chatties?limit=${PAGE_SIZE}`;
-
-  const firstChatFromPage = previousChattiesData.chatties.at(-1);
-
-  if (!firstChatFromPage) return null;
-
-  return `/api/chatties?ending_before=${firstChatFromPage.id}&limit=${PAGE_SIZE}`;
-}
+import { ChattyContext } from '@/app/(chat)/context/ChattyContext';
 
 function ChattiesHeader() {
   const router = useRouter();
@@ -90,51 +54,7 @@ function ChattiesHeader() {
 }
 
 export function SidebarChatties({ user }: { user: User | undefined }) {
-  const {
-    data: paginatedChatties,
-    setSize,
-    isValidating,
-    isLoading,
-    mutate,
-  } = useSWRInfinite<ChattiesList>(getChattiesPaginationKey, fetcher, {
-    fallbackData: [],
-  });
-
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
-  const hasReachedEnd = paginatedChatties
-    ? paginatedChatties.some((page) => page.hasMore === false)
-    : false;
-
-  const hasEmptyChatHistory = paginatedChatties
-    ? paginatedChatties.every((page) => !page.chatties.length)
-    : false;
-
-  const handleDelete = async () => {
-    const deletePromise = fetch(`/api/chatty?id=${deleteId}`, {
-      method: 'DELETE',
-    });
-
-    toast.promise(deletePromise, {
-      loading: 'Deleting chatty...',
-      success: () => {
-        mutate((chatHistories) => {
-          if (chatHistories) {
-            return chatHistories.map((chatHistory) => ({
-              ...chatHistory,
-              chats: chatHistory.chatties.filter((chatty) => chatty.id !== deleteId),
-            }));
-          }
-        });
-
-        return 'Chatty deleted successfully';
-      },
-      error: 'Failed to delete chatty',
-    });
-
-    setShowDeleteDialog(false);
-  };
+  const { chatties, hasMore, setSize, isValidating, isLoading } = useContext(ChattyContext);
 
   if (!user) {
     return (
@@ -174,7 +94,7 @@ export function SidebarChatties({ user }: { user: User | undefined }) {
     );
   }
 
-  if (hasEmptyChatHistory) {
+  if (!chatties.length) {
     return (
       <SidebarGroup>
         <SidebarGroupContent>
@@ -193,35 +113,24 @@ export function SidebarChatties({ user }: { user: User | undefined }) {
         <SidebarGroupContent>
           <ChattiesHeader />
           <SidebarMenu>
-            {paginatedChatties &&
-              (() => {
-                const chattiesFromHistory = paginatedChatties.flatMap(
-                  (paginatedChatties) => paginatedChatties.chatties,
-                );
-
-                return (
-                  <div className="flex flex-col gap-6">
-                    {(
-                      <div>
-                        {chattiesFromHistory.map((chatty) => (
-                          <ChattySidebarItem key={chatty.id} chatty={chatty} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+            <div className="flex flex-col gap-6">
+              <div>
+                {chatties.map((chatty) => (
+                  <ChattySidebarItem key={chatty.id} chatty={chatty} />
+                ))}
+              </div>
+            </div>
           </SidebarMenu>
 
           <motion.div
             onViewportEnter={() => {
-              if (!isValidating && !hasReachedEnd) {
+              if (!isValidating && !hasMore) {
                 setSize((size) => size + 1);
               }
             }}
           />
 
-          {hasReachedEnd ? (
+          {hasMore ? (
             <div className="flex flex-row gap-2 justify-center items-center px-2 mt-8 w-full text-sm text-zinc-500">
               This is ALL of your Chatties!
             </div>
@@ -235,24 +144,6 @@ export function SidebarChatties({ user }: { user: User | undefined }) {
           )}
         </SidebarGroupContent>
       </SidebarGroup>
-
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your
-              Chatty and remove it from our servers.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>
-              Continue
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

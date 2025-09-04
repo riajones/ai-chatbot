@@ -53,18 +53,24 @@ About the origin of user's request:
 export const systemPrompt = ({
   selectedChatModel,
   requestHints,
+  userProvidedContext,
 }: {
   selectedChatModel: string;
   requestHints: RequestHints;
+  userProvidedContext?: string;
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
 
   if (selectedChatModel === 'chat-model-reasoning') {
-    return `${regularPrompt}\n\n${requestPrompt}`;
+    return [regularPrompt, requestPrompt, userProvidedContextPrompt(userProvidedContext)].filter(Boolean).join('\n\n');
   } else {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
+    return [regularPrompt, requestPrompt, userProvidedContextPrompt(userProvidedContext), artifactsPrompt].filter(Boolean).join('\n\n');
   }
 };
+
+function userProvidedContextPrompt(userProvidedContext?: string) {
+  return userProvidedContext ? `The user has provided this additional context, use it to inform your responses: ${userProvidedContext}` : '';
+}
 
 export const codePrompt = `
 You are a Python code generator that creates self-contained, executable code snippets. When writing code:

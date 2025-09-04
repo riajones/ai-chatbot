@@ -10,6 +10,7 @@ import {
   type SetStateAction,
   type ChangeEvent,
   memo,
+  useContext,
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
@@ -28,7 +29,7 @@ import {
   PromptInputModelSelectTrigger,
   PromptInputModelSelectContent,
 } from './elements/prompt-input';
-import { SelectItem, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import equal from 'fast-deep-equal';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -39,6 +40,9 @@ import type { Attachment, ChatMessage } from '@/lib/types';
 import { chatModels } from '@/lib/ai/models';
 import { saveChatModelAsCookie } from '@/app/(chat)/actions';
 import { startTransition } from 'react';
+import { ChattyContext } from '@/app/(chat)/context/ChattyContext';
+import { Chatty } from '@/lib/db/schema';
+import { Input } from './ui/input';
 
 function PureMultimodalInput({
   chatId,
@@ -51,6 +55,8 @@ function PureMultimodalInput({
   messages,
   setMessages,
   sendMessage,
+  chattyId,
+  setChattyId,
   className,
   selectedVisibilityType,
   selectedModelId,
@@ -62,6 +68,8 @@ function PureMultimodalInput({
   stop: () => void;
   attachments: Array<Attachment>;
   setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
+  chattyId: string | undefined;
+  setChattyId: (chattyId: string | undefined) => void;
   messages: Array<UIMessage>;
   setMessages: UseChatHelpers<ChatMessage>['setMessages'];
   sendMessage: UseChatHelpers<ChatMessage>['sendMessage'];
@@ -71,6 +79,7 @@ function PureMultimodalInput({
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
+  const { chatties } = useContext(ChattyContext);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -325,6 +334,7 @@ function PureMultimodalInput({
           <PromptInputTools className="gap-2">
             <AttachmentsButton fileInputRef={fileInputRef} status={status} />
             <ModelSelectorCompact selectedModelId={selectedModelId} />
+            {chatties.length > 0 && <ChattySelectorCompact selectedChattyId={chattyId} setChattyId={setChattyId} chatties={chatties} readonly={messages.length > 0} />}
           </PromptInputTools>
           {status === 'submitted' ? (
             <StopButton stop={stop} setMessages={setMessages} />
@@ -429,6 +439,36 @@ function PureModelSelectorCompact({
 }
 
 const ModelSelectorCompact = memo(PureModelSelectorCompact);
+
+function PureChattySelectorCompact({
+  selectedChattyId,
+  setChattyId,
+  chatties,
+  readonly,
+}: {
+  selectedChattyId: string | undefined;
+  setChattyId: (chattyId: string | undefined) => void;
+  chatties: Chatty[];
+  readonly: boolean;
+}) {
+  return (
+    <Select value={selectedChattyId} onValueChange={(value) => setChattyId(value === "None" ? undefined : value)}>
+      <SelectTrigger disabled={readonly}>
+        <SelectValue placeholder="Select a chatty" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="None" onClick={() => setChattyId(undefined)}>None</SelectItem>
+        {chatties.map((chatty) => (
+          <SelectItem key={chatty.id} value={chatty.id} onClick={() => setChattyId(chatty.id)}>
+            {chatty.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+const ChattySelectorCompact = PureChattySelectorCompact;
 
 function PureStopButton({
   stop,

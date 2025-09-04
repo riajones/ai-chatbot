@@ -25,6 +25,7 @@ import { useDataStream } from './data-stream-provider';
 
 export function Chat({
   id,
+  initialChattyId,
   initialMessages,
   initialChatModel,
   initialVisibilityType,
@@ -33,6 +34,7 @@ export function Chat({
   autoResume,
 }: {
   id: string;
+  initialChattyId?: string | null | undefined;
   initialMessages: ChatMessage[];
   initialChatModel: string;
   initialVisibilityType: VisibilityType;
@@ -49,6 +51,11 @@ export function Chat({
   const { setDataStream } = useDataStream();
 
   const [input, setInput] = useState<string>('');
+  const [chattyId, setChattyId] = useState<string | undefined>(initialChattyId ?? undefined);
+
+  useEffect(() => {
+    (window as any).chattyId = chattyId;
+  }, [chattyId]);
 
   const {
     messages,
@@ -73,6 +80,7 @@ export function Chat({
             message: messages.at(-1),
             selectedChatModel: initialChatModel,
             selectedVisibilityType: visibilityType,
+            chattyId: (window as any).chattyId,
             ...body,
           },
         };
@@ -157,6 +165,8 @@ export function Chat({
               stop={stop}
               attachments={attachments}
               setAttachments={setAttachments}
+              chattyId={chattyId}
+              setChattyId={setChattyId}
               messages={messages}
               setMessages={setMessages}
               sendMessage={sendMessage}

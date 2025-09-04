@@ -87,11 +87,13 @@ export async function saveChat({
   userId,
   title,
   visibility,
+  chattyId,
 }: {
   id: string;
   userId: string;
   title: string;
   visibility: VisibilityType;
+  chattyId: string | undefined;
 }) {
   try {
     return await db.insert(chat).values({
@@ -100,6 +102,7 @@ export async function saveChat({
       userId,
       title,
       visibility,
+      chattyId,
     });
   } catch (error) {
     throw new ChatSDKError('bad_request:database', 'Failed to save chat');
@@ -309,8 +312,7 @@ export async function saveChatty({
   context: string;
 }) {
   try {
-    const chattyId = id ?? generateUUID();
-    const deactivateChatty = db.update(chatty).set({ active: false }).where(eq(chatty.id, chattyId));
+    const deactivateChatty = id ? db.update(chatty).set({ active: false }).where(eq(chatty.id, id)) : Promise.resolve();
 
     const newChattyId = generateUUID();
     const newChatty = db.insert(chatty).values({

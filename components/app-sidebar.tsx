@@ -18,6 +18,8 @@ import {
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { SidebarChatties } from './sidebar-chatties';
+import { useContext } from 'react';
+import { ChattyContext } from '@/app/(chat)/context/ChattyContext';
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();

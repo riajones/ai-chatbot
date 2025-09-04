@@ -4,49 +4,41 @@ import { Chatty } from '@/lib/db/schema';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
-import { useState } from 'react';
+import { useContext, useState, type FormEvent, type MouseEvent } from 'react';
 import { toast } from './toast';
 import { useRouter } from 'next/navigation';
+import { ChattyContext } from '@/app/(chat)/context/ChattyContext';
 
 type ChattyEditorProps = {
   chatty: Chatty;
 }
 
 export const ChattyEditor = (props: ChattyEditorProps) => {
+  const { saveChatty } = useContext(ChattyContext);
   const router = useRouter();
   const [name, setName] = useState(props.chatty.name);
   const [description, setDescription] = useState(props.chatty.description || '');
   const [context, setContext] = useState(props.chatty.context);
 
-  async function onSave() {
-    const nextChatty = {
+  async function onSave(event: FormEvent | MouseEvent) {
+    event.preventDefault();
+
+    const nextChatty = await saveChatty({
       ...props.chatty,
       name,
       description,
       context,
-    };
-
-    const response = await fetch(`/api/chatty`, {
-      method: 'POST',
-      body: JSON.stringify(nextChatty),
     });
-    if (response.ok) {
-      toast({ type: 'success', description: 'Chatty saved successfully' });
-    } else {
-      toast({ type: 'error', description: 'Failed to save Chatty' });
-    }
 
-    const responseJson = await response.json();
-
-    router.push(`/chatty/${responseJson.id}`);
+    router.push(`/chatty/${nextChatty.id}`);
   }
 
   return (
-    <form onSubmit={(event) => event.preventDefault()}>
+    <form onSubmit={(event) => onSave(event)} className="flex flex-col gap-2 min-w-[300px] w-[80%] mx-auto">
       <Input name="name" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
       <Input name="description" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
       <Textarea name="context" placeholder="Context" value={context} onChange={(e) => setContext(e.target.value)} />
-      <Button type="submit" onClick={() => onSave()}>Save</Button>
+      <Button type="submit" onClick={(event) => onSave(event)} className="w-fit self-end">Save</Button>
     </form>
   );
 };
