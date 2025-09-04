@@ -38,15 +38,11 @@ export async function GET(
   return Response.json(chatty, { status: 200 });
 }
 
-
-
 export async function DELETE(
   _: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: chattyId } = await params;
-
-  console.log('chattyId', chattyId);
 
   if (!chattyId) {
     return new ChatSDKError('bad_request:api').toResponse();

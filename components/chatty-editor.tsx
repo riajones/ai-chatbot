@@ -6,12 +6,14 @@ import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { useState } from 'react';
 import { toast } from './toast';
+import { useRouter } from 'next/navigation';
 
 type ChattyEditorProps = {
   chatty: Chatty;
 }
 
 export const ChattyEditor = (props: ChattyEditorProps) => {
+  const router = useRouter();
   const [name, setName] = useState(props.chatty.name);
   const [description, setDescription] = useState(props.chatty.description || '');
   const [context, setContext] = useState(props.chatty.context);
@@ -33,6 +35,10 @@ export const ChattyEditor = (props: ChattyEditorProps) => {
     } else {
       toast({ type: 'error', description: 'Failed to save Chatty' });
     }
+
+    const responseJson = await response.json();
+
+    router.push(`/chatty/${responseJson.id}`);
   }
 
   return (

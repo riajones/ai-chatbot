@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server';
 
 export async function POST(request: NextRequest) {
   const json = await request.json();
-  const { name, description, context } = json;
+  const { id, name, description, context } = json;
 
   if (!name) {
     return new ChatSDKError('bad_request:api', 'Name is required').toResponse();
@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
   }
 
   const chatty = await saveChatty({
+    id,
     name,
     description,
     context,

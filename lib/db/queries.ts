@@ -337,7 +337,7 @@ export async function deleteChattyById({ id }: { id: string }) {
 
     const [chatsDeleted] = await db
       .delete(chatty)
-      .where(eq(chat.id, id))
+      .where(eq(chatty.id, id))
       .returning();
     return chatsDeleted;
   } catch (error) {
