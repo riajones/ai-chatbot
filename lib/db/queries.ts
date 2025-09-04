@@ -27,6 +27,8 @@ import {
   type DBMessage,
   type Chat,
   stream,
+  chatty,
+  Chatty,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
@@ -207,6 +209,138 @@ export async function getChatById({ id }: { id: string }) {
     throw new ChatSDKError('bad_request:database', 'Failed to get chat by id');
   }
 }
+
+export async function getChattiesByUserId({
+  id,
+  limit,
+  startingAfter,
+  endingBefore,
+}: {
+  id: string;
+  limit: number;
+  startingAfter: string | null;
+  endingBefore: string | null;
+}) {
+  try {
+    const extendedLimit = limit + 1;
+
+    const query = (whereCondition?: SQL<any>) =>
+      db
+        .select()
+        .from(chatty)
+        .where(
+          whereCondition
+            ? and(whereCondition, eq(chatty.userId, id))
+            : eq(chatty.userId, id),
+        )
+        .orderBy(desc(chatty.createdAt))
+        .limit(extendedLimit);
+
+    let filteredChatties: Array<Chatty> = [];
+
+    if (startingAfter) {
+      const [selectedChat] = await db
+        .select()
+        .from(chatty)
+        .where(eq(chatty.id, startingAfter))
+        .limit(1);
+
+      if (!selectedChat) {
+        throw new ChatSDKError(
+          'not_found:database',
+          `Chatty with id ${startingAfter} not found`,
+        );
+      }
+
+      filteredChatties = await query(gt(chat.createdAt, selectedChat.createdAt));
+    } else if (endingBefore) {
+      const [selectedChat] = await db
+        .select()
+        .from(chat)
+        .where(eq(chat.id, endingBefore))
+        .limit(1);
+
+      if (!selectedChat) {
+        throw new ChatSDKError(
+          'not_found:database',
+          `Chatty with id ${endingBefore} not found`,
+        );
+      }
+
+      filteredChatties = await query(lt(chat.createdAt, selectedChat.createdAt));
+    } else {
+      filteredChatties = await query();
+    }
+
+    const hasMore = filteredChatties.length > limit;
+
+    return {
+      chats: hasMore ? filteredChatties.slice(0, limit) : filteredChatties,
+      hasMore,
+    };
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get chatties by user id',
+    );
+  }
+}
+
+export async function getChattyById({ id }: { id: string }) {
+  try {
+    const [selectedChatty] = await db.select().from(chatty).where(eq(chatty.id, id));
+    return selectedChatty;
+  } catch (error) {
+    throw new ChatSDKError('bad_request:database', 'Failed to get chatty by id');
+  }
+}
+
+export async function saveChatty({
+  userId,
+  name,
+  description,
+  context,
+}: {
+  userId: string;
+  name: string;
+  description: string;
+  context: string;
+}) {
+  try {
+    const id = generateUUID();
+    await db.insert(chatty).values({
+      id,
+      createdAt: new Date(),
+      userId,
+      name,
+      description,
+      context,
+    });
+
+    return getChattyById({ id });
+  } catch (error) {
+    throw new ChatSDKError('bad_request:database', 'Failed to save chatty');
+  }
+}
+
+export async function deleteChattyById({ id }: { id: string }) {
+  try {
+    const chats = await db.select().from(chat).where(eq(chat.chattyId, id));
+    await Promise.all(chats.map((chat) => deleteChatById({ id: chat.id })));
+
+    const [chatsDeleted] = await db
+      .delete(chatty)
+      .where(eq(chat.id, id))
+      .returning();
+    return chatsDeleted;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to delete chatty by id',
+    );
+  }
+}
+
 
 export async function saveMessages({
   messages,

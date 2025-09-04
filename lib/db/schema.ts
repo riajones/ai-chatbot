@@ -29,9 +29,25 @@ export const chat = pgTable('Chat', {
   visibility: varchar('visibility', { enum: ['public', 'private'] })
     .notNull()
     .default('private'),
+  chattyId: uuid('chattyId')
+    .references(() => chatty.id),
+  historyEnabled: boolean('historyEnabled').notNull().default(false),
 });
 
 export type Chat = InferSelectModel<typeof chat>;
+
+export const chatty = pgTable('Chatty', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  createdAt: timestamp('createdAt').notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  context: text('context').notNull(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+});
+
+export type Chatty = InferSelectModel<typeof chatty>;
 
 // DEPRECATED: The following schema is deprecated and will be removed in the future.
 // Read the migration guide at https://chat-sdk.dev/docs/migration-guides/message-parts

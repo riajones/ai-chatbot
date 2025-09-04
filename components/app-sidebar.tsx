@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { SidebarChatties } from './sidebar-chatties';
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
@@ -60,6 +61,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarHistory user={user} />
+      </SidebarContent>
+      <SidebarContent>
+        <SidebarChatties user={user} />
       </SidebarContent>
       <SidebarFooter>{user && <SidebarUserNav user={user} />}</SidebarFooter>
     </Sidebar>
