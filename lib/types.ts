@@ -44,6 +44,10 @@ export type CustomUIDataTypes = {
   finish: null;
 };
 
+export type ChattyMetadata = {
+  chattyId?: string;
+};
+
 export type ChatMessage = UIMessage<
   MessageMetadata,
   CustomUIDataTypes,

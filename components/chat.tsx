@@ -20,7 +20,7 @@ import { useSearchParams } from 'next/navigation';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { useAutoResume } from '@/hooks/use-auto-resume';
 import { ChatSDKError } from '@/lib/errors';
-import type { Attachment, ChatMessage } from '@/lib/types';
+import type { Attachment, ChatMessage, ChattyMetadata } from '@/lib/types';
 import { useDataStream } from './data-stream-provider';
 
 export function Chat({
@@ -60,12 +60,12 @@ export function Chat({
   const {
     messages,
     setMessages,
-    sendMessage,
+    sendMessage: sendChatMessage,
     status,
     stop,
     regenerate,
     resumeStream,
-  } = useChat<ChatMessage>({
+  } = useChat<ChatMessage & ChattyMetadata>({
     id,
     messages: initialMessages,
     experimental_throttle: 100,
@@ -74,13 +74,15 @@ export function Chat({
       api: '/api/chat',
       fetch: fetchWithErrorHandlers,
       prepareSendMessagesRequest({ messages, id, body }) {
+        const mostRecentMessage = messages.at(-1);
+        const chattyId = mostRecentMessage?.chattyId;
         return {
           body: {
             id,
-            message: messages.at(-1),
+            message: mostRecentMessage,
             selectedChatModel: initialChatModel,
             selectedVisibilityType: visibilityType,
-            chattyId: (window as any).chattyId,
+            chattyId,
             ...body,
           },
         };
@@ -101,6 +103,13 @@ export function Chat({
       }
     },
   });
+
+  const sendMessage: typeof sendChatMessage = (args: any) => {
+    return sendChatMessage({
+      ...args,
+      chattyId,
+    });
+  };
 
   const searchParams = useSearchParams();
   const query = searchParams.get('query');
