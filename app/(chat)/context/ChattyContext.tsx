@@ -98,7 +98,8 @@ export const ChattyProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const newChatty = await response.json();
-    setChatties([...chatties, newChatty]);
+    const previous = chatties.filter((existing) => existing.id !== chatty.id);
+    setChatties([...previous, newChatty]);
     return newChatty;
   }
 
